@@ -1,47 +1,47 @@
-# pedidos.py
-# Sistema sencillo de pedidos (estilo principiante, fácil de leer)
+from typing import Dict, List, Optional, Any
 
-MENU = {
+MENU: Dict[str, int] = {
     "papitas": 3500,
     "helados": 1500,
     "agua": 2300,
     "empanadas": 3400
 }
 
-# Aquí guardamos los pedidos: clave = numero_pedido (string)
-pedidos = {}
+# In-memory storage for orders: key = order_number (string)
+pedidos: Dict[str, Dict[str, Any]] = {}
 
-
-def leer_entero(mensaje):
+def leer_entero(mensaje: str) -> int:
     """
-    Pide un entero al usuario. Repite hasta que el usuario ponga un entero válido.
-    Es una función auxiliar para evitar errores con int().
+    Prompts the user for an integer until a valid one is provided.
+    
+    Args:
+        mensaje: The prompt message to display.
+        
+    Returns:
+        The valid integer entered by the user.
     """
     while True:
-        entrada = input(mensaje).strip()
-        if entrada == "":
+        entrada: str = input(mensaje).strip()
+        if not entrada:
             print("No ingresaste nada. Intenta de nuevo.")
             continue
         try:
-            valor = int(entrada)
-            return valor
+            return int(entrada)
         except ValueError:
             print("Por favor ingresa un número entero válido.")
 
-
-def mostrar_menu():
-    """Muestra el menú con precios."""
+def mostrar_menu() -> None:
+    """Displays the menu with prices."""
     print("\n--- MENÚ ---")
     for nombre, precio in MENU.items():
         print(f"{nombre} -> ${precio}")
     print("------------\n")
 
-
-def registrar_pedido():
-    """Registra un nuevo pedido con validaciones."""
+def registrar_pedido() -> None:
+    """Registers a new order with validations."""
     print("\nRegistrar nuevo pedido")
-    numero = input("Número de pedido: ").strip()
-    if numero == "":
+    numero: str = input("Número de pedido: ").strip()
+    if not numero:
         print("El número de pedido no puede estar vacío.")
         return
 
@@ -49,18 +49,17 @@ def registrar_pedido():
         print("Ese número de pedido ya existe. Usa otro número.")
         return
 
-    cliente = input("Nombre del cliente: ").strip()
-    if cliente == "":
+    cliente: str = input("Nombre del cliente: ").strip()
+    if not cliente:
         print("El nombre del cliente no puede estar vacío.")
         return
 
     mostrar_menu()
 
-    # Pedir cantidades por cada producto
-    items = {}
-    total_cantidades = 0
+    items: Dict[str, int] = {}
+    total_cantidades: int = 0
     for producto in MENU:
-        cantidad = leer_entero(f"Cantidad de {producto} (0 si no desea): ")
+        cantidad: int = leer_entero(f"Cantidad de {producto} (0 si no desea): ")
         if cantidad < 0:
             print("No se permiten cantidades negativas. Registro cancelado.")
             return
@@ -71,30 +70,25 @@ def registrar_pedido():
         print("El pedido debe contener al menos un ítem. No se registró el pedido.")
         return
 
-    # Calcular total automáticamente
-    total = 0
-    for producto, cantidad in items.items():
-        precio = MENU[producto]
-        total += precio * cantidad
+    total: int = sum(MENU[prod] * cant for prod, cant in items.items())
 
-    # Guardar pedido
     pedidos[numero] = {
         "cliente": cliente,
         "items": items,
         "total": total,
-        "estado": "activo"   # puede ser "activo" o "cancelado"
+        "estado": "activo"   # "activo" or "cancelado"
     }
 
     print(f"Pedido registrado correctamente. Total a pagar: ${total}")
 
-
-def consultar_pedido():
-    """Consulta un pedido por su número y lo muestra."""
+def consultar_pedido() -> None:
+    """Consults an order by its number and displays it."""
     print("\nConsultar pedido")
-    numero = input("Número de pedido a consultar: ").strip()
+    numero: str = input("Número de pedido a consultar: ").strip()
     if numero not in pedidos:
         print("Pedido no encontrado.")
         return
+    
     p = pedidos[numero]
     print(f"\nPedido Nº {numero}")
     print(f"Cliente: {p['cliente']}")
@@ -107,11 +101,10 @@ def consultar_pedido():
             print(f" - {producto}: {cantidad} x ${precio} = ${subtotal}")
     print(f"Total: ${p['total']}\n")
 
-
-def cancelar_pedido():
-    """Cancela un pedido (cambia su estado a 'cancelado')."""
+def cancelar_pedido() -> None:
+    """Cancels an order by changing its state to 'cancelado'."""
     print("\nCancelar pedido")
-    numero = input("Número de pedido a cancelar: ").strip()
+    numero: str = input("Número de pedido a cancelar: ").strip()
     if numero not in pedidos:
         print("Pedido no encontrado.")
         return
@@ -121,51 +114,37 @@ def cancelar_pedido():
     pedidos[numero]["estado"] = "cancelado"
     print("Pedido cancelado correctamente.")
 
-
-def ver_todos_los_pedidos():
-    """Muestra una lista simple con todos los pedidos."""
+def ver_todos_los_pedidos() -> None:
+    """Displays a list of all registered orders."""
     print("\nTodos los pedidos:")
     if not pedidos:
         print("No hay pedidos registrados.")
         return
     for numero, p in pedidos.items():
         print(f"- Nº {numero} | Cliente: {p['cliente']} | Total: ${p['total']} | Estado: {p['estado']}")
-    print("")  # línea en blanco
+    print("")
 
-
-def generar_reporte_dia():
-    """
-    Genera el reporte del día:
-    - Total de pedidos registrados
-    - Pedidos activos y cancelados
-    - Total recaudado (solo activos)
-    - Promedio por pedido (sobre pedidos activos)
-    - Pedido con valor más alto (entre activos)
-    """
+def generar_reporte_dia() -> None:
+    """Generates and displays a daily sales report."""
     print("\nReporte del día")
-    total_pedidos = len(pedidos)
+    total_pedidos: int = len(pedidos)
     if total_pedidos == 0:
         print("No hay pedidos para reportar.")
         return
 
-    activos = [p for p in pedidos.values() if p["estado"] == "activo"]
-    cancelados = [p for p in pedidos.values() if p["estado"] == "cancelado"]
+    activos: List[Dict[str, Any]] = [p for p in pedidos.values() if p["estado"] == "activo"]
+    cancelados: List[Dict[str, Any]] = [p for p in pedidos.values() if p["estado"] == "cancelado"]
 
-    total_recaudado = sum(p["total"] for p in activos)
-    cantidad_activos = len(activos)
-    cantidad_cancelados = len(cancelados)
+    total_recaudado: int = sum(p["total"] for p in activos)
+    cantidad_activos: int = len(activos)
+    cantidad_cancelados: int = len(cancelados)
 
     if cantidad_activos > 0:
-        promedio = total_recaudado // cantidad_activos  # promedio en pesos, entero
+        promedio: float = total_recaudado / cantidad_activos
         pedido_mayor = max(activos, key=lambda x: x["total"])
-        # buscar el número del pedido mayor
-        numero_mayor = None
-        for num, p in pedidos.items():
-            if p is pedido_mayor:
-                numero_mayor = num
-                break
+        numero_mayor: Optional[str] = next((num for num, p in pedidos.items() if p is pedido_mayor), None)
     else:
-        promedio = 0
+        promedio = 0.0
         pedido_mayor = None
         numero_mayor = None
 
@@ -173,16 +152,13 @@ def generar_reporte_dia():
     print(f" - Pedidos activos: {cantidad_activos}")
     print(f" - Pedidos cancelados: {cantidad_cancelados}")
     print(f"Total recaudado (solo activos): ${total_recaudado}")
-    print(f"Promedio por pedido (activos): ${promedio}")
-    if pedido_mayor:
+    print(f"Promedio por pedido (activos): ${promedio:.2f}")
+    if numero_mayor:
         print(f"Pedido con valor más alto: Nº {numero_mayor} | Cliente: {pedido_mayor['cliente']} | Total: ${pedido_mayor['total']}")
-    else:
-        print("No hay pedidos activos para determinar el pedido más alto.")
     print("")
 
-
-def menu_principal():
-    """Menú principal que controla el flujo del programa."""
+def menu_principal() -> None:
+    """Main menu to control the program flow."""
     while True:
         print("=== SISTEMA DE PEDIDOS ===")
         print("1 - Registrar pedido")
@@ -191,7 +167,7 @@ def menu_principal():
         print("4 - Ver todos los pedidos")
         print("5 - Generar reporte del día")
         print("0 - Salir")
-        opcion = input("Elige una opción: ").strip()
+        opcion: str = input("Elige una opción: ").strip()
 
         if opcion == "1":
             registrar_pedido()
@@ -209,7 +185,5 @@ def menu_principal():
         else:
             print("Opción no válida. Intenta de nuevo.")
 
-
-# Punto de entrada
 if __name__ == "__main__":
     menu_principal()

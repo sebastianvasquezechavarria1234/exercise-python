@@ -1,60 +1,59 @@
-# consumo_agua.py
-# Registro sencillo del consumo diario de agua (estilo principiante)
+from typing import List
 
-def leer_consumo(mensaje):
+def leer_consumo(mensaje: str) -> float:
     """
-    Pide al usuario un valor de consumo en litros.
-    - Si el usuario escribe '-1' devuelve -1 (señal de terminar).
-    - Si ingresa un número mayor que 0 lo devuelve como float.
-    - Repite hasta recibir una entrada válida.
+    Prompts the user for a water consumption value in liters.
+    
+    Args:
+        mensaje: The prompt message to display.
+        
+    Returns:
+        The consumption value as a float, or -1.0 to signal termination.
     """
     while True:
-        entrada = input(mensaje).strip()
+        entrada: str = input(mensaje).strip()
         if entrada == "-1":
-            return -1
-        if entrada == "":
+            return -1.0
+        if not entrada:
             print("No ingresaste nada. Intenta de nuevo.")
             continue
         try:
-            valor = float(entrada)
+            valor: float = float(entrada)
+            if valor <= 0:
+                print("El consumo debe ser mayor que cero. Intenta de nuevo (o -1 para terminar).")
+                continue
+            return valor
         except ValueError:
-            print("Por favor ingresa un número (ej. 12.5) o -1 para terminar.")
-            continue
-        if valor <= 0:
-            print("El consumo debe ser mayor que cero. Intenta de nuevo (o -1 para terminar).")
-            continue
-        return valor
+            print("Por favor ingresa un número válido (ej. 12.5) o -1 para terminar.")
 
-
-def registrar_consumos():
+def registrar_consumos() -> List[float]:
     """
-    Registra consumos diarios hasta que el usuario escriba -1.
-    Devuelve la lista de consumos (en litros).
+    Collects daily water consumption data from the user.
+    
+    Returns:
+        A list of daily consumption values in liters.
     """
-    consumos = []
-    dia = 1
+    consumos: List[float] = []
+    dia: int = 1
     print("Registro de consumo diario de agua")
     print("Escribe -1 cuando quieras terminar el registro.\n")
 
     while True:
-        mensaje = f"Ingrese litros consumidos en el día {dia} (o -1 para terminar): "
-        valor = leer_consumo(mensaje)
-        if valor == -1:
+        mensaje: str = f"Ingrese litros consumidos en el día {dia} (o -1 para terminar): "
+        valor: float = leer_consumo(mensaje)
+        if valor == -1.0:
             break
         consumos.append(valor)
         dia += 1
 
     return consumos
 
-
-def generar_informe(consumos):
+def generar_informe(consumos: List[float]) -> None:
     """
-    Genera e imprime el informe estadístico:
-    - Total de días registrados
-    - Promedio de consumo
-    - Día con mayor consumo
-    - Día con menor consumo
-    - Listado completo en orden ascendente
+    Generates and prints a statistical report of water consumption.
+    
+    Args:
+        consumos: List of daily consumption values.
     """
     print("\n--- INFORME DEL MES ---")
 
@@ -62,20 +61,17 @@ def generar_informe(consumos):
         print("No se registraron consumos. No hay datos para mostrar.")
         return
 
-    total_dias = len(consumos)
-    total_litros = sum(consumos)
-    promedio = total_litros / total_dias
+    total_dias: int = len(consumos)
+    total_litros: float = sum(consumos)
+    promedio: float = total_litros / total_dias
 
-    # Día con mayor y menor consumo (se muestra el primer día en caso de empate)
-    valor_max = max(consumos)
-    dia_max = consumos.index(valor_max) + 1  # +1 para contar días desde 1
-    valor_min = min(consumos)
-    dia_min = consumos.index(valor_min) + 1
+    valor_max: float = max(consumos)
+    dia_max: int = consumos.index(valor_max) + 1
+    valor_min: float = min(consumos)
+    dia_min: int = consumos.index(valor_min) + 1
 
-    # Listado ascendente
-    listado_asc = sorted(consumos)
+    listado_asc: List[float] = sorted(consumos)
 
-    # Imprimir resultados con formato legible
     print(f"Total de días registrados: {total_dias}")
     print(f"Total de litros consumidos: {total_litros:.2f} L")
     print(f"Promedio diario: {promedio:.2f} L/día")
@@ -86,11 +82,10 @@ def generar_informe(consumos):
         print(f" {i}. {v:.2f} L")
     print("------------------------\n")
 
-
-def main():
-    consumos = registrar_consumos()
+def main() -> None:
+    """Main entry point for the water consumption tracker."""
+    consumos: List[float] = registrar_consumos()
     generar_informe(consumos)
-
 
 if __name__ == "__main__":
     main()
