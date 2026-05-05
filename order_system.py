@@ -1,8 +1,10 @@
+import json
+import os
 from typing import Dict, List, Optional, Any
 
 class OrderSystem:
     """
-    Handles orders, menu management, and sales reporting.
+    Handles orders, menu management, and sales reporting with JSON persistence.
     """
     MENU = {
         "papitas": 3500,
@@ -10,12 +12,22 @@ class OrderSystem:
         "agua": 2300,
         "empanadas": 3400
     }
+    DB_FILE = "orders.json"
 
     def __init__(self):
-        self.orders: Dict[str, Dict[str, Any]] = {}
+        self.orders: Dict[str, Dict[str, Any]] = self._load_data()
+
+    def _load_data(self) -> Dict[str, Any]:
+        if os.path.exists(self.DB_FILE):
+            with open(self.DB_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        return {}
+
+    def _save_data(self) -> None:
+        with open(self.DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(self.orders, f, indent=4, ensure_ascii=False)
 
     def add_order(self, order_id: str, client: str, items: Dict[str, int]) -> bool:
-        """Adds a new order to the system."""
         if order_id in self.orders:
             return False
         
@@ -26,24 +38,21 @@ class OrderSystem:
             "total": total,
             "estado": "activo"
         }
+        self._save_data()
         return True
 
     def cancel_order(self, order_id: str) -> bool:
-        """Marks an order as cancelled."""
         if order_id in self.orders and self.orders[order_id]["estado"] == "activo":
             self.orders[order_id]["estado"] = "cancelado"
+            self._save_data()
             return True
         return False
 
-    def get_active_orders(self) -> List[Dict]:
-        return [o for o in self.orders.values() if o["estado"] == "activo"]
-
     def get_report(self) -> Dict:
-        """Generates statistical data for all orders."""
         if not self.orders:
             return {}
             
-        activos = self.get_active_orders()
+        activos = [o for o in self.orders.values() if o["estado"] == "activo"]
         total_recaudado = sum(o["total"] for o in activos)
         
         return {
@@ -54,14 +63,13 @@ class OrderSystem:
             "average": total_recaudado / len(activos) if activos else 0
         }
 
-# Logic for the CLI remains separate to maintain clean separation of concerns
 def main() -> None:
     system = OrderSystem()
     while True:
-        print("\n=== SISTEMA DE PEDIDOS ===")
+        print("\n=== SISTEMA DE PEDIDOS (CON PERSISTENCIA) ===")
         print("1 - Registrar pedido")
         print("2 - Cancelar pedido")
-        print("3 - Reporte")
+        print("3 - Reporte General")
         print("0 - Salir")
         opc = input("Opción: ").strip()
         
@@ -70,19 +78,30 @@ def main() -> None:
             cli = input("Cliente: ")
             items = {}
             for prod in system.MENU:
-                cant = int(input(f"Cantidad {prod}: ") or 0)
-                if cant > 0: items[prod] = cant
+                try:
+                    cant = int(input(f"Cantidad {prod} (0 para omitir): ") or 0)
+                    if cant > 0: items[prod] = cant
+                except ValueError:
+                    print("Cantidad inválida, se tomará como 0.")
+            
             if items and system.add_order(num, cli, items):
-                print("Registrado.")
+                print(f"Pedido {num} registrado.")
             else:
-                print("Error en registro.")
+                print("Error: El pedido ya existe o está vacío.")
         elif opc == "2":
             num = input("Número a cancelar: ")
             if system.cancel_order(num): print("Cancelado.")
             else: print("No encontrado o ya cancelado.")
         elif opc == "3":
             rep = system.get_report()
-            print(f"Reporte: {rep}")
+            if not rep:
+                print("No hay datos.")
+            else:
+                print(f"\n--- Reporte ---")
+                print(f"Total pedidos: {rep['total_count']}")
+                print(f"Activos: {rep['active_count']}")
+                print(f"Ingresos: ${rep['revenue']}")
+                print(f"Promedio: ${rep['average']:.2f}")
         elif opc == "0":
             break
 

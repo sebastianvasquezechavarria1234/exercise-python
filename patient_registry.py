@@ -1,34 +1,42 @@
+import json
+import os
 from typing import List, Dict
 from collections import Counter
 
 class PatientRegistry:
     """
-    Manages patient registration and generates service statistics.
+    Manages patient registration and generates service statistics with JSON persistence.
     """
     SERVICES = {
         "1": "Medicina General",
         "2": "Exámenes de Laboratorio",
         "3": "Odontología"
     }
+    DB_FILE = "patients.json"
 
     def __init__(self):
-        self.patients: List[Dict[str, str]] = []
+        self.patients: List[Dict[str, str]] = self._load_data()
+
+    def _load_data(self) -> List[Dict[str, str]]:
+        if os.path.exists(self.DB_FILE):
+            with open(self.DB_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        return []
+
+    def _save_data(self) -> None:
+        with open(self.DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(self.patients, f, indent=4, ensure_ascii=False)
 
     def register_patient(self, name: str, service_code: str) -> bool:
-        """
-        Registers a new patient with a specific service.
-        """
         service = self.SERVICES.get(service_code)
         if not service:
             return False
         
         self.patients.append({"nombre": name, "servicio": service})
+        self._save_data()
         return True
 
     def get_summary(self) -> Dict:
-        """
-        Calculates and returns a summary of the registration session.
-        """
         if not self.patients:
             return {}
 
@@ -66,9 +74,9 @@ def main() -> None:
             print("Opción de servicio inválida. Registro cancelado.\n")
 
     summary = registry.get_summary()
-    print("\n=== Resumen de la jornada ===")
+    print("\n=== Resumen Acumulado ===")
     if not summary:
-        print("No se registraron pacientes.")
+        print("No hay pacientes registrados.")
         return
 
     print(f"Número total de turnos: {summary['total']}")
