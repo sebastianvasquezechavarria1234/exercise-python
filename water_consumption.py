@@ -1,91 +1,78 @@
-from typing import List
+import json
+import os
+from typing import List, Dict
 
-def leer_consumo(mensaje: str) -> float:
+class WaterTracker:
     """
-    Prompts the user for a water consumption value in liters.
-    
-    Args:
-        mensaje: The prompt message to display.
+    Tracks daily water consumption with persistence and analysis.
+    """
+    DB_FILE = "water_data.json"
+
+    def __init__(self):
+        self.consumos: List[float] = self._load_data()
+
+    def _load_data(self) -> List[float]:
+        if os.path.exists(self.DB_FILE):
+            with open(self.DB_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        return []
+
+    def _save_data(self) -> None:
+        with open(self.DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(self.consumos, f, indent=4)
+
+    def add_consumption(self, value: float) -> None:
+        if value > 0:
+            self.consumos.append(value)
+            self._save_data()
+
+    def get_analysis(self) -> Dict:
+        if not self.consumos:
+            return {}
         
-    Returns:
-        The consumption value as a float, or -1.0 to signal termination.
-    """
-    while True:
-        entrada: str = input(mensaje).strip()
-        if entrada == "-1":
-            return -1.0
-        if not entrada:
-            print("No ingresaste nada. Intenta de nuevo.")
-            continue
-        try:
-            valor: float = float(entrada)
-            if valor <= 0:
-                print("El consumo debe ser mayor que cero. Intenta de nuevo (o -1 para terminar).")
-                continue
-            return valor
-        except ValueError:
-            print("Por favor ingresa un número válido (ej. 12.5) o -1 para terminar.")
-
-def registrar_consumos() -> List[float]:
-    """
-    Collects daily water consumption data from the user.
-    
-    Returns:
-        A list of daily consumption values in liters.
-    """
-    consumos: List[float] = []
-    dia: int = 1
-    print("Registro de consumo diario de agua")
-    print("Escribe -1 cuando quieras terminar el registro.\n")
-
-    while True:
-        mensaje: str = f"Ingrese litros consumidos en el día {dia} (o -1 para terminar): "
-        valor: float = leer_consumo(mensaje)
-        if valor == -1.0:
-            break
-        consumos.append(valor)
-        dia += 1
-
-    return consumos
-
-def generar_informe(consumos: List[float]) -> None:
-    """
-    Generates and prints a statistical report of water consumption.
-    
-    Args:
-        consumos: List of daily consumption values.
-    """
-    print("\n--- INFORME DEL MES ---")
-
-    if not consumos:
-        print("No se registraron consumos. No hay datos para mostrar.")
-        return
-
-    total_dias: int = len(consumos)
-    total_litros: float = sum(consumos)
-    promedio: float = total_litros / total_dias
-
-    valor_max: float = max(consumos)
-    dia_max: int = consumos.index(valor_max) + 1
-    valor_min: float = min(consumos)
-    dia_min: int = consumos.index(valor_min) + 1
-
-    listado_asc: List[float] = sorted(consumos)
-
-    print(f"Total de días registrados: {total_dias}")
-    print(f"Total de litros consumidos: {total_litros:.2f} L")
-    print(f"Promedio diario: {promedio:.2f} L/día")
-    print(f"Día con mayor consumo: Día {dia_max} -> {valor_max:.2f} L")
-    print(f"Día con menor consumo: Día {dia_min} -> {valor_min:.2f} L")
-    print("\nListado completo del consumo diario (orden ascendente):")
-    for i, v in enumerate(listado_asc, start=1):
-        print(f" {i}. {v:.2f} L")
-    print("------------------------\n")
+        total = sum(self.consumos)
+        count = len(self.consumos)
+        v_max = max(self.consumos)
+        v_min = min(self.consumos)
+        
+        return {
+            "total_days": count,
+            "total_liters": total,
+            "average": total / count,
+            "max": {"value": v_max, "day": self.consumos.index(v_max) + 1},
+            "min": {"value": v_min, "day": self.consumos.index(v_min) + 1},
+            "sorted_list": sorted(self.consumos)
+        }
 
 def main() -> None:
-    """Main entry point for the water consumption tracker."""
-    consumos: List[float] = registrar_consumos()
-    generar_informe(consumos)
+    tracker = WaterTracker()
+    print("=== MONITOR DE CONSUMO DE AGUA ===")
+    print("Escriba -1 para terminar de ingresar datos.\n")
+
+    while True:
+        dia = len(tracker.consumos) + 1
+        try:
+            entrada = input(f"Día {dia} - Litros: ").strip()
+            if entrada == "-1": break
+            val = float(entrada)
+            if val <= 0:
+                print("El valor debe ser positivo.")
+                continue
+            tracker.add_consumption(val)
+        except ValueError:
+            print("Entrada inválida.")
+
+    analysis = tracker.get_analysis()
+    if not analysis:
+        print("No hay datos registrados.")
+        return
+
+    print("\n--- INFORME ESTADÍSTICO ---")
+    print(f"Días registrados: {analysis['total_days']}")
+    print(f"Total consumido: {analysis['total_liters']:.2f} L")
+    print(f"Promedio diario: {analysis['average']:.2f} L/día")
+    print(f"Máximo: {analysis['max']['value']:.2f} L (Día {analysis['max']['day']})")
+    print(f"Mínimo: {analysis['min']['value']:.2f} L (Día {analysis['min']['day']})")
 
 if __name__ == "__main__":
     main()

@@ -4,15 +4,15 @@ from typing import Dict, List, Optional, Any
 
 class OrderSystem:
     """
-    Handles orders, menu management, and sales reporting with JSON persistence.
+    Handles orders, menu management, and sales reporting with JSON persistence and stock management.
     """
     MENU = {
-        "papitas": 3500,
-        "helados": 1500,
-        "agua": 2300,
-        "empanadas": 3400
+        "papitas": {"price": 3500, "stock": 50},
+        "helados": {"price": 1500, "stock": 30},
+        "agua": {"price": 2300, "stock": 100},
+        "empanadas": {"price": 3400, "stock": 40}
     }
-    DB_FILE = "orders.json"
+    DB_FILE = "orders_v2.json"
 
     def __init__(self):
         self.orders: Dict[str, Dict[str, Any]] = self._load_data()
@@ -29,9 +29,21 @@ class OrderSystem:
 
     def add_order(self, order_id: str, client: str, items: Dict[str, int]) -> bool:
         if order_id in self.orders:
+            print(f"Error: El pedido {order_id} ya existe.")
             return False
         
-        total = sum(self.MENU[prod] * cant for prod, cant in items.items())
+        # Check stock
+        for prod, cant in items.items():
+            if cant > self.MENU[prod]["stock"]:
+                print(f"Error: No hay suficiente stock de {prod} (disponible: {self.MENU[prod]['stock']})")
+                return False
+
+        # Deduct stock and calculate total
+        total = 0
+        for prod, cant in items.items():
+            total += self.MENU[prod]["price"] * cant
+            self.MENU[prod]["stock"] -= cant
+
         self.orders[order_id] = {
             "cliente": client,
             "items": items,
@@ -43,6 +55,11 @@ class OrderSystem:
 
     def cancel_order(self, order_id: str) -> bool:
         if order_id in self.orders and self.orders[order_id]["estado"] == "activo":
+            # Return stock
+            items = self.orders[order_id]["items"]
+            for prod, cant in items.items():
+                self.MENU[prod]["stock"] += cant
+            
             self.orders[order_id]["estado"] = "cancelado"
             self._save_data()
             return True
@@ -66,10 +83,11 @@ class OrderSystem:
 def main() -> None:
     system = OrderSystem()
     while True:
-        print("\n=== SISTEMA DE PEDIDOS (CON PERSISTENCIA) ===")
+        print("\n=== SISTEMA DE PEDIDOS PRO (STOCK + PERSISTENCIA) ===")
         print("1 - Registrar pedido")
         print("2 - Cancelar pedido")
         print("3 - Reporte General")
+        print("4 - Ver Stock")
         print("0 - Salir")
         opc = input("Opción: ").strip()
         
@@ -77,20 +95,19 @@ def main() -> None:
             num = input("Número pedido: ")
             cli = input("Cliente: ")
             items = {}
-            for prod in system.MENU:
+            for prod, info in system.MENU.items():
                 try:
-                    cant = int(input(f"Cantidad {prod} (0 para omitir): ") or 0)
+                    print(f"[{prod}] - Precio: ${info['price']} | Stock: {info['stock']}")
+                    cant = int(input(f"Cantidad {prod}: ") or 0)
                     if cant > 0: items[prod] = cant
                 except ValueError:
-                    print("Cantidad inválida, se tomará como 0.")
+                    print("Cantidad inválida.")
             
             if items and system.add_order(num, cli, items):
                 print(f"Pedido {num} registrado.")
-            else:
-                print("Error: El pedido ya existe o está vacío.")
         elif opc == "2":
             num = input("Número a cancelar: ")
-            if system.cancel_order(num): print("Cancelado.")
+            if system.cancel_order(num): print("Cancelado y stock devuelto.")
             else: print("No encontrado o ya cancelado.")
         elif opc == "3":
             rep = system.get_report()
@@ -98,10 +115,11 @@ def main() -> None:
                 print("No hay datos.")
             else:
                 print(f"\n--- Reporte ---")
-                print(f"Total pedidos: {rep['total_count']}")
-                print(f"Activos: {rep['active_count']}")
-                print(f"Ingresos: ${rep['revenue']}")
-                print(f"Promedio: ${rep['average']:.2f}")
+                print(f"Total: {rep['total_count']} | Activos: {rep['active_count']} | Ingresos: ${rep['revenue']}")
+        elif opc == "4":
+            print("\n--- Stock Actual ---")
+            for prod, info in system.MENU.items():
+                print(f"{prod}: {info['stock']} unidades")
         elif opc == "0":
             break
 
